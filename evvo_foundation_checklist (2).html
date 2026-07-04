@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evvo — Foundation Build Checklist</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background: #f5f4f0; color: #1a1a18; padding: 2rem 1rem; min-height: 100vh; }
+  .page { max-width: 780px; margin: 0 auto; }
+  .header { margin-bottom: 2rem; }
+  .logo { font-size: 22px; font-weight: 600; color: #1a1a18; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .logo span { color: #1D9E75; }
+  .header-sub { font-size: 13px; color: #73726c; }
+  .sync-status { font-size: 11px; margin-top: 6px; padding: 3px 8px; border-radius: 20px; display: inline-block; }
+  .sync-ok { background: #E1F5EE; color: #085041; }
+  .sync-saving { background: #FAEEDA; color: #633806; }
+  .sync-error { background: #FCEBEB; color: #791F1F; }
+  .progress-card { background: #ffffff; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1.75rem; border: 0.5px solid #e0deda; }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-label { font-size: 13px; font-weight: 500; color: #1a1a18; }
+  .progress-count { font-size: 13px; color: #73726c; }
+  .progress-track { height: 7px; background: #eeede8; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #1D9E75; border-radius: 4px; transition: width 0.3s ease; width: 0%; }
+  .reset-btn { font-size: 11px; color: #999; cursor: pointer; text-decoration: underline; margin-top: 8px; display: inline-block; background: none; border: none; padding: 0; }
+  .reset-btn:hover { color: #555; }
+  .loading-bar { background: #fff8e8; border: 0.5px solid #f0d9a0; border-radius: 8px; padding: 10px 14px; margin-bottom: 1.25rem; font-size: 12px; color: #7a5c00; display: none; }
+  .section { background: #ffffff; border-radius: 12px; border: 0.5px solid #e0deda; margin-bottom: 1.25rem; overflow: hidden; }
+  .section-header { display: flex; align-items: center; gap: 12px; padding: 1rem 1.25rem; border-bottom: 0.5px solid #eeede8; cursor: pointer; user-select: none; }
+  .section-header:hover { background: #fafaf8; }
+  .section-num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .section-title-wrap { flex: 1; }
+  .section-title { font-size: 14px; font-weight: 500; color: #1a1a18; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .section-subtitle { font-size: 12px; color: #73726c; margin-top: 2px; }
+  .section-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .section-tally { font-size: 11px; color: #999; }
+  .chevron { font-size: 12px; color: #999; transition: transform 0.2s; }
+  .section.collapsed .chevron { transform: rotate(-90deg); }
+  .section.collapsed .section-body { display: none; }
+  .section-body { padding: 0; }
+  .item { display: flex; align-items: flex-start; gap: 12px; padding: 11px 1.25rem; border-bottom: 0.5px solid #f0efeb; cursor: pointer; transition: background 0.1s; }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: #fafaf8; }
+  .item.done { background: #fafaf8; }
+  .checkbox { width: 18px; height: 18px; border: 1.5px solid #ccc; border-radius: 4px; flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: #fff; }
+  .item.done .checkbox { background: #1D9E75; border-color: #1D9E75; }
+  .checkmark { display: none; width: 10px; height: 6px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translateY(-1px); }
+  .item.done .checkmark { display: block; }
+  .item-content { flex: 1; }
+  .item-text { font-size: 13px; color: #1a1a18; line-height: 1.5; font-weight: 500; transition: color 0.15s; }
+  .item.done .item-text { color: #aaa; text-decoration: line-through; }
+  .item-note { font-size: 12px; color: #888; margin-top: 3px; line-height: 1.5; }
+  .item.done .item-note { color: #bbb; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; vertical-align: middle; white-space: nowrap; }
+  .tag-critical { background: #FCEBEB; color: #791F1F; }
+  .tag-lovable { background: #EEEDFE; color: #3C3489; }
+  .tag-external { background: #FAEEDA; color: #633806; }
+  .n1 { background: #EEEDFE; color: #3C3489; }
+  .n2 { background: #E1F5EE; color: #085041; }
+  .n3 { background: #FAEEDA; color: #633806; }
+  .n4 { background: #E6F1FB; color: #0C447C; }
+  .n5 { background: #FAECE7; color: #4A1B0C; }
+  .n6 { background: #EAF3DE; color: #27500A; }
+  .n7 { background: #FBEAF0; color: #4B1528; }
+  .n8 { background: #F1EFE8; color: #2C2C2A; }
+  .n9 { background: #EEEDFE; color: #3C3489; }
+  .footer { text-align: center; font-size: 11px; color: #aaa; margin-top: 2rem; padding-bottom: 1rem; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="logo">ev<span>v</span>o</div>
+    <div class="header-sub">Foundation Build Checklist — complete these before building any features</div>
+    <span class="sync-status sync-ok" id="sync-status">✓ Connected to Google Sheets</span>
+  </div>
+
+  <div class="loading-bar" id="loading-bar">⏳ Loading your saved progress from Google Sheets...</div>
+
+  <div class="progress-card">
+    <div class="progress-top">
+      <span class="progress-label">Foundation progress</span>
+      <span class="progress-count" id="progress-text">0 of 57 complete</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <button class="reset-btn" onclick="resetAll()">Reset all</button>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="section" id="s1">
+    <div class="section-header" onclick="toggleSection('s1')">
+      <div class="section-num n1">1</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Infrastructure and hosting <span class="tag tag-critical">critical first</span></div>
+        <div class="section-subtitle">Nothing else works without this</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s1">0/5</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i1" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Connect Lovable to a Supabase project</div><div class="item-note">This is your database. Set it up before writing a single prompt for features.</div></div></div>
+      <div class="item" id="i2" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Register evvo.com or your chosen domain</div><div class="item-note">Do this today. Domains disappear. Check .com, .io and .co.uk availability.</div></div></div>
+      <div class="item" id="i3" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Connect your custom domain to Lovable <span class="tag tag-lovable">Lovable</span></div><div class="item-note">Replace the .lovable.app URL before showing anyone the product.</div></div></div>
+      <div class="item" id="i4" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Set up app.evvo.com for the product and evvo.com for the landing page</div><div class="item-note">Separating these now saves a painful restructure later.</div></div></div>
+      <div class="item" id="i5" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Confirm SSL certificate is active on all domains</div><div class="item-note">Lovable and Supabase handle this automatically — just verify the padlock shows.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section" id="s2">
+    <div class="section-header" onclick="toggleSection('s2')">
+      <div class="section-num n2">2</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Multi-tenancy and data architecture <span class="tag tag-critical">critical first</span></div>
+        <div class="section-subtitle">The foundation everything else is built on</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s2">0/4</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i6" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build multi-tenant data structure in Supabase</div><div class="item-note">Every piece of data must be tagged with an organisation ID from day one. Retrofitting this later is extremely painful.</div></div></div>
+      <div class="item" id="i7" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Implement Row Level Security across all database tables</div><div class="item-note">This ensures one customer can never see another's data. Get a developer to audit this before any real customers use the product.</div></div></div>
+      <div class="item" id="i8" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Test data separation rigorously with two dummy organisations</div><div class="item-note">Log in as Org A and confirm you cannot see Org B's data under any circumstances.</div></div></div>
+      <div class="item" id="i9" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Set up organisation table with unique ID, name, plan tier and status fields</div><div class="item-note">Every customer organisation needs its own record as the root of all their data.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section" id="s3">
+    <div class="section-header" onclick="toggleSection('s3')">
+      <div class="section-num n3">3</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Authentication <span class="tag tag-critical">critical first</span></div>
+        <div class="section-subtitle">How people get in and stay secure</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s3">0/6</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i10" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Email and password sign up and login via Supabase Auth</div><div class="item-note">Standard and reliable. Use Supabase's built-in auth rather than building your own.</div></div></div>
+      <div class="item" id="i11" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Email verification on sign up</div><div class="item-note">Prevents fake accounts and confirms deliverability to that address.</div></div></div>
+      <div class="item" id="i12" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Forgot password and reset password flow</div><div class="item-note">Non-negotiable. Every user will need this eventually.</div></div></div>
+      <div class="item" id="i13" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Invitation-based sign up flow for all non-Headliner roles</div><div class="item-note">Operators, Spectators and Contributors should only be able to join via an invitation link, not open sign up.</div></div></div>
+      <div class="item" id="i14" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Session management and automatic logout after inactivity</div><div class="item-note">Important for security, especially for shared devices at events.</div></div></div>
+      <div class="item" id="i15" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Secure password requirements enforced on sign up</div><div class="item-note">Minimum length and complexity requirements. Supabase can enforce this.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <div class="section" id="s4">
+    <div class="section-header" onclick="toggleSection('s4')">
+      <div class="section-num n4">4</div>
+      <div class="section-title-wrap">
+        <div class="section-title">User roles and permissions</div>
+        <div class="section-subtitle">Headliner, Operator, Spectator, Contributor</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s4">0/6</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i16" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build all four roles with correct permission levels in Supabase</div><div class="item-note">Headliner, Operator, Spectator, Contributor — enforced at database level not just frontend.</div></div></div>
+      <div class="item" id="i17" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build role-based invitation hierarchy</div><div class="item-note">Super admin invites Headliners. Headliners invite all roles. Operators invite Spectators and Contributors only. Operators cannot delete Headliner-invited Spectators.</div></div></div>
+      <div class="item" id="i18" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build team management page for Headliners</div><div class="item-note">Shows all members, their roles, last login, and options to edit, remove or resend invitations.</div></div></div>
+      <div class="item" id="i19" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Ensure role changes take effect immediately without requiring logout</div><div class="item-note">If a Headliner downgrades an Operator to Spectator, access should update in real time.</div></div></div>
+      <div class="item" id="i20" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build separate minimal Contributor portal</div><div class="item-note">Contributors must never see any part of the main platform. Their world is a single submission page only.</div></div></div>
+      <div class="item" id="i21" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Test every role permission against every feature</div><div class="item-note">Create a test account for each role and manually verify what they can and cannot access before going live.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <div class="section" id="s5">
+    <div class="section-header" onclick="toggleSection('s5')">
+      <div class="section-num n5">5</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Super admin panel</div>
+        <div class="section-subtitle">Your view across all customers</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s5">0/6</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i22" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build super admin panel at a protected separate route</div><div class="item-note">Accessible only by you. Never visible to any customer under any circumstances.</div></div></div>
+      <div class="item" id="i23" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Organisation list with sign up date, plan, user count and status</div><div class="item-note">Your live view of every customer on the platform.</div></div></div>
+      <div class="item" id="i24" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Ability to suspend, edit or delete any organisation or user</div><div class="item-note">Essential for handling billing issues, abuse or customer support.</div></div></div>
+      <div class="item" id="i25" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">View onboarding headache answers from all Operators</div><div class="item-note">This is your live product roadmap. Read every answer religiously.</div></div></div>
+      <div class="item" id="i26" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Impersonation feature to view any customer's workspace as read only</div><div class="item-note">Invaluable for customer support and debugging without asking customers to share screens.</div></div></div>
+      <div class="item" id="i27" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">At-risk accounts view showing organisations with no events created</div><div class="item-note">These are your churn risks. Reach out to them personally before they disappear.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 6 -->
+  <div class="section" id="s6">
+    <div class="section-header" onclick="toggleSection('s6')">
+      <div class="section-num n6">6</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Onboarding flows</div>
+        <div class="section-subtitle">First impressions that set up the workspace</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s6">0/6</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i28" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build Headliner onboarding wizard — 3 steps</div><div class="item-note">Organisation setup, dashboard preferences, team invitations.</div></div></div>
+      <div class="item" id="i29" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build Operator onboarding wizard — 2 steps plus completion</div><div class="item-note">How they work, event workspace setup per event, final headache question.</div></div></div>
+      <div class="item" id="i30" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build Spectator onboarding — single screen</div><div class="item-note">Name, role confirmation, which events they are following.</div></div></div>
+      <div class="item" id="i31" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build Contributor welcome screen</div><div class="item-note">Name, company confirmation, straight to their submission portal. Nothing else.</div></div></div>
+      <div class="item" id="i32" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Ensure all onboarding answers pre-populate the workspace correctly</div><div class="item-note">Event cards, budget templates, deadline timelines and tracker structures should all be waiting on the dashboard after onboarding completes.</div></div></div>
+      <div class="item" id="i33" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build Settings page where all onboarding answers can be edited later</div><div class="item-note">Nothing from onboarding should be locked. Users need to update everything as their events evolve.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 7 -->
+  <div class="section" id="s7">
+    <div class="section-header" onclick="toggleSection('s7')">
+      <div class="section-num n7">7</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Payments and subscriptions <span class="tag tag-external">external service</span></div>
+        <div class="section-subtitle">How Evvo makes money</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s7">0/6</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i34" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Set up Stripe account and connect to Lovable</div><div class="item-note">Stripe is the industry standard. Lovable can connect to it via prompt.</div></div></div>
+      <div class="item" id="i35" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build pricing page with plan tiers</div><div class="item-note">Starter, Growth, Studio — keep it simple at launch, maximum three plans.</div></div></div>
+      <div class="item" id="i36" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build subscription management for customers</div><div class="item-note">Customers must be able to upgrade, downgrade and cancel their own plan without emailing you.</div></div></div>
+      <div class="item" id="i37" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build billing portal inside customer Settings</div><div class="item-note">Shows current plan, next billing date, payment method and invoice history.</div></div></div>
+      <div class="item" id="i38" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Handle failed payment and dunning flow</div><div class="item-note">What happens when a card fails — automated retry emails, grace period, then account suspension. Stripe handles most of this natively.</div></div></div>
+      <div class="item" id="i39" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Enforce plan limits at database level</div><div class="item-note">If Starter plan allows 3 events, the 4th event creation should be blocked and prompt an upgrade, not just hidden in the UI.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 8 -->
+  <div class="section" id="s8">
+    <div class="section-header" onclick="toggleSection('s8')">
+      <div class="section-num n8">8</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Legal, compliance and trust <span class="tag tag-external">external service</span></div>
+        <div class="section-subtitle">Non-negotiable before any paying customer</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s8">0/7</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i40" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Incorporate as a UK limited company at Companies House</div><div class="item-note">£12 online, takes 24 hours. Do this before you take any money.</div></div></div>
+      <div class="item" id="i41" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Register UK trademark for Evvo name and logo</div><div class="item-note">£170 via the IPO. Apply as soon as you are certain of the name.</div></div></div>
+      <div class="item" id="i42" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Get Privacy Policy and Terms of Service written</div><div class="item-note">Use a solicitor or a service like Termly. Budget £300–500. Must be live before any real user touches the product.</div></div></div>
+      <div class="item" id="i43" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">GDPR compliance — cookie consent, data processing agreements, right to deletion</div><div class="item-note">You are handling business data for UK and EU customers. Non-compliance carries serious fines. Get advice early.</div></div></div>
+      <div class="item" id="i44" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Register with the ICO as a data controller</div><div class="item-note">Mandatory in the UK if you process personal data. Costs £40–60 per year. Takes about 20 minutes.</div></div></div>
+      <div class="item" id="i45" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Get a freelance developer to audit Supabase Row Level Security</div><div class="item-note">Budget 2–3 hours of developer time. One customer seeing another's data is a catastrophic trust failure. Worth every penny before launch.</div></div></div>
+      <div class="item" id="i46" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Set up a status page showing platform uptime</div><div class="item-note">Use a free tool like Instatus or BetterUptime. Enterprise buyers will ask for this.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 9 -->
+  <div class="section" id="s9">
+    <div class="section-header" onclick="toggleSection('s9')">
+      <div class="section-num n9">9</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Email and notifications</div>
+        <div class="section-subtitle">How Evvo communicates with users</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s9">0/4</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i47" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Set up transactional email via Resend or Loops</div><div class="item-note">For invitation emails, password resets, verification and deadline reminders. Do not use Supabase's default email in production.</div></div></div>
+      <div class="item" id="i48" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Brand all outgoing emails with Evvo logo and styling</div><div class="item-note">Every email is a brand touchpoint. A plain text Supabase email looks unprofessional.</div></div></div>
+      <div class="item" id="i49" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Build in-app notification system with bell icon and unread count</div><div class="item-note">Deadline alerts, Contributor submissions, team activity — all surfaced in-app.</div></div></div>
+      <div class="item" id="i50" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Set up email notification preferences per user</div><div class="item-note">Let users choose what they get emailed about. Removing this control leads to unsubscribes and frustration.</div></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 10 -->
+  <div class="section" id="s10">
+    <div class="section-header" onclick="toggleSection('s10')">
+      <div class="section-num n2">10</div>
+      <div class="section-title-wrap">
+        <div class="section-title">Trademark and brand protection <span class="tag tag-external">external service</span></div>
+        <div class="section-subtitle">Protect the Evvo name before someone else does</div>
+      </div>
+      <div class="section-meta"><span class="section-tally" id="tally-s10">0/5</span><span class="chevron">▾</span></div>
+    </div>
+    <div class="section-body">
+      <div class="item" id="i51" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Search UK IPO trademark register for EVVO — confirmed clear in Class 42 and Class 9 ✓</div><div class="item-note">No identical marks found for EVVO (double V) in software or SaaS classes. EVO marks exist but are visually and phonetically distinct. You are clear to proceed.</div></div></div>
+      <div class="item" id="i52" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Search EUIPO trademark register for EVVO — confirm clear in Class 42 and Class 9</div><div class="item-note">Go to euipo.europa.eu/eSearch and search EVVO filtered by Class 42 and Class 9. Important if you plan to target European event companies.</div></div></div>
+      <div class="item" id="i53" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">File UK trademark for EVVO in Class 42 and Class 9</div><div class="item-note">£170 per class — £340 total — via trademarks.ipo.gov.uk. File as soon as possible. Your filing date is everything — whoever files first wins.</div></div></div>
+      <div class="item" id="i54" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Consider filing an EU trademark via EUIPO</div><div class="item-note">A single EU trademark covers all 27 member states. Costs approximately £850. Not urgent but worth planning once you have paying customers.</div></div></div>
+      <div class="item" id="i55" onclick="toggle(this)"><div class="checkbox"><div class="checkmark"></div></div><div class="item-content"><div class="item-text">Register evvo.com, evvo.io or evvo.co.uk domain immediately</div><div class="item-note">Now that the name is confirmed clear, securing the domain is urgent. Check availability at instantdomainsearch.com and register via Cloudflare or Namecheap.</div></div></div>
+    </div>
+  </div>
+
+  <div class="footer">Evvo Foundation Checklist &nbsp;·&nbsp; Ticks save automatically to Google Sheets</div>
+
+</div>
+
+<script>
+  const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyURn16EITyMox5jzIuMryjhjfuU4rQfh1woJGDCa4Y9RWTP_VuNncP2XRjSTe9-miK/exec';
+  const TOTAL = 55;
+
+  const sectionCounts = {
+    s1: 5, s2: 4, s3: 6, s4: 6, s5: 6, s6: 6, s7: 6, s8: 7, s9: 4, s10: 5
+  };
+
+  let saveTimer = null;
+
+  function setStatus(type, msg) {
+    const el = document.getElementById('sync-status');
+    el.className = 'sync-status sync-' + type;
+    el.textContent = msg;
+  }
+
+  async function loadFromSheet() {
+    document.getElementById('loading-bar').style.display = 'block';
+    setStatus('saving', '⏳ Loading saved progress...');
+    try {
+      const res = await fetch(SHEET_URL);
+      const data = await res.json();
+      Object.keys(data).forEach(id => {
+        if (data[id] === true || data[id] === 'TRUE' || data[id] === true) {
+          const el = document.getElementById(id);
+          if (el && !el.classList.contains('done')) {
+            el.classList.add('done');
+          }
+        }
+      });
+      updateAll();
+      setStatus('ok', '✓ Progress loaded');
+    } catch (e) {
+      setStatus('error', '⚠ Could not load — working offline');
+    }
+    document.getElementById('loading-bar').style.display = 'none';
+  }
+
+  async function saveToSheet(itemId, checked) {
+    setStatus('saving', '💾 Saving...');
+    try {
+      await fetch(SHEET_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ item_id: itemId, checked: checked })
+      });
+      setStatus('ok', '✓ Saved to Google Sheets');
+    } catch (e) {
+      setStatus('error', '⚠ Save failed — check connection');
+    }
+  }
+
+  function toggle(item) {
+    item.classList.toggle('done');
+    updateAll();
+    const itemId = item.id;
+    const checked = item.classList.contains('done');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => saveToSheet(itemId, checked), 500);
+  }
+
+  function toggleSection(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+
+  function updateAll() {
+    const done = document.querySelectorAll('.item.done').length;
+    document.getElementById('progress-text').textContent = done + ' of ' + TOTAL + ' complete';
+    document.getElementById('progress-fill').style.width = (done / TOTAL * 100) + '%';
+    Object.keys(sectionCounts).forEach(id => {
+      const section = document.getElementById(id);
+      const sectionDone = section.querySelectorAll('.item.done').length;
+      document.getElementById('tally-' + id).textContent = sectionDone + '/' + sectionCounts[id];
+    });
+  }
+
+  async function resetAll() {
+    if (!confirm('Reset all checkboxes? This will also clear your Google Sheet.')) return;
+    document.querySelectorAll('.item').forEach(i => i.classList.remove('done'));
+    updateAll();
+    const items = document.querySelectorAll('.item');
+    for (const item of items) {
+      await saveToSheet(item.id, false);
+    }
+    setStatus('ok', '✓ Reset complete');
+  }
+
+  window.addEventListener('load', loadFromSheet);
+</script>
+
+</body>
+</html>
